@@ -3,8 +3,9 @@ use bevy_asset_loader::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
-use leafwing_input_manager::prelude::InputManagerPlugin;
 use seldom_state::prelude::*;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use leafwing_input_manager::prelude::InputManagerPlugin;
 
 use iyes_progress::{ProgressCounter, ProgressPlugin};
 use npcs::{
@@ -16,8 +17,7 @@ use npcs::{
 
 #[derive(AssetCollection, Resource)]
 struct ImageAssets {
-  // #[asset(path = "map/map.ldtk")]
-  #[asset(path = "map/sandbox.ldtk")]
+  #[asset(path = "map/npcs.ldtk")]
   map: Handle<LdtkAsset>,
 }
 
@@ -31,13 +31,14 @@ fn main() {
     .build(&mut app);
 
   app
-    .add_plugins(DefaultPlugins)
+    .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
     .add_plugin(ProgressPlugin::new(GameState::AssetLoading))
+    .add_plugin(WorldInspectorPlugin)
     .add_plugin(LdtkPlugin)
     .add_plugin(StateMachinePlugin)
     .add_plugin(TriggerPlugin::<Near>::default())
     .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
-    .add_plugin(RapierDebugRenderPlugin::default())
+    // .add_plugin(RapierDebugRenderPlugin::default())
     .add_plugin(InputManagerPlugin::<TopDownAction>::default())
     // Resources
     .insert_resource(LdtkSettings {

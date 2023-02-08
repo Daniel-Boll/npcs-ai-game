@@ -40,10 +40,6 @@ pub fn spawn(
       let follow_speed = 100.;
       let follow_distance = 100.;
 
-      commands
-        .entity(enemy_entity)
-        .insert(Follow::new(player_entity, follow_speed));
-
       let near_player = Near::new(player_entity, follow_distance);
 
       commands
@@ -59,6 +55,49 @@ pub fn spawn(
 
 /// When the enemy has a follow component, this system will move the enemy towards the target.
 /// This function runs every tick.
+// fn follow(
+//   entities_with_transform: Query<&Transform>,
+//   mut entities_with_kinematic_controller: Query<
+//     (&mut KinematicCharacterController, &Transform),
+//     With<Velocity>,
+//   >,
+//   follows: Query<(Entity, &Follow), With<Enemy>>,
+//   time: Res<Time>,
+// ) {
+//   for (entity, follow) in &follows {
+//     let target_position = entities_with_transform
+//       .get(follow.target)
+//       .expect("Enemy has no target")
+//       .translation;
+//     let enemy_controller = &mut entities_with_kinematic_controller
+//       .get_mut(entity)
+//       .expect("Enemy has no controller");
+//
+//     // In the enemy position get only the translation
+//     let (
+//       enemy_controller,
+//       Transform {
+//         translation: enemy_position,
+//         ..
+//       },
+//     ) = enemy_controller;
+//
+//     // Calculate the vector to steer the enemy towards the target
+//     let desired_translation = (target_position - *enemy_position)
+//       .normalize_or_zero()
+//       .truncate()
+//       * time.delta_seconds()
+//       * 100.;
+//
+//     enemy_controller.translation = match enemy_controller.translation {
+//       Some(translation) => Some(translation + desired_translation),
+//       None => Some(desired_translation),
+//     };
+//   }
+// }
+
+/// When the enemy has a follow component, this system will move the enemy towards the target using
+/// A* pathfinding. This function runs every tick.
 fn follow(
   entities_with_transform: Query<&Transform>,
   mut entities_with_kinematic_controller: Query<
@@ -67,35 +106,40 @@ fn follow(
   >,
   follows: Query<(Entity, &Follow), With<Enemy>>,
   time: Res<Time>,
+  level_query: Query<&Handle<LdtkLevel>>,
+  ldtk_levels: Res<Assets<LdtkLevel>>,
+  level_selection: Res<LevelSelection>,
 ) {
-  for (entity, follow) in &follows {
-    let target_position = entities_with_transform
-      .get(follow.target)
-      .expect("Enemy has no target")
-      .translation;
-    let enemy_controller = &mut entities_with_kinematic_controller
-      .get_mut(entity)
-      .expect("Enemy has no controller");
+  for level_handle in level_query.iter() {
+    let level = &ldtk_levels
+      .get(level_handle)
+      .expect("Level not found")
+      .level;
 
-    // In the enemy position get only the translation
-    let (
-      enemy_controller,
-      Transform {
-        translation: enemy_position,
+    if !level_selection.is_match(&0, level) {
+      continue;
+    }
+
+    for layer_instance in level
+      .layer_instances
+      .as_ref()
+      .expect("No layer instance")
+      .iter()
+    {
+      let LayerInstance {
+        identifier,
+        grid_tiles,
         ..
-      },
-    ) = enemy_controller;
+      } = layer_instance;
 
-    // Calculate the vector to steer the enemy towards the target
-    let desired_translation = (target_position - *enemy_position)
-      .normalize_or_zero()
-      .truncate()
-      * time.delta_seconds()
-      * 100.;
+      // dbg!(identifier);
 
-    enemy_controller.translation = match enemy_controller.translation {
-      Some(translation) => Some(translation + desired_translation),
-      None => Some(desired_translation),
-    };
+      match identifier.as_ref() {
+        "Entities" => {}
+        "Tiles" => {}
+        "Collision" => {}
+        _ => {}
+      }
+    }
   }
 }

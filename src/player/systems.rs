@@ -27,20 +27,20 @@ pub fn spawn(
   mut materials: ResMut<Assets<ColorMaterial>>,
   players: Query<PlayerQueryGet, PlayerQueryWhen>,
 ) {
-  let mesh = meshes.add(Mesh::from(shape::Capsule {
-    radius: 12.0,
-    depth: 24.0,
-    ..default()
-  }));
-  let material = materials.add(ColorMaterial::from(Color::hex("1fa9f4").unwrap()));
-  for (player, transform) in players.iter() {
-    commands.entity(player).insert(MaterialMesh2dBundle {
-      mesh: mesh.clone().into(),
-      material: material.clone(),
-      transform: *transform,
-      ..default()
-    });
-  }
+  // let mesh = meshes.add(Mesh::from(shape::Capsule {
+  //   radius: 12.0,
+  //   depth: 24.0,
+  //   ..default()
+  // }));
+  // let material = materials.add(ColorMaterial::from(Color::hex("1fa9f4").unwrap()));
+  // for (player, transform) in players.iter() {
+  //   commands.entity(player).insert(MaterialMesh2dBundle {
+  //     mesh: mesh.clone().into(),
+  //     material: material.clone(),
+  //     transform: *transform,
+  //     ..default()
+  //   });
+  // }
 }
 
 pub fn movement(

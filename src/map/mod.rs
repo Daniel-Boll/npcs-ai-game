@@ -26,15 +26,9 @@ impl From<EntityInstance> for ColliderBundle {
     let rotation_constraints = LockedAxes::ROTATION_LOCKED;
 
     match entity_instance.identifier.as_ref() {
-      // "Player" | "Enemy" => ColliderBundle {
-      "Player" => ColliderBundle {
-        collider: Collider::ball(16.),
-        rigid_body: RigidBody::KinematicPositionBased,
-        rotation_constraints,
-        ..Default::default()
-      },
-      "Enemy" => ColliderBundle {
-        collider: Collider::ball(50.),
+      "Player" | "Enemy" => ColliderBundle {
+        // Rectangle collider 24x24
+        collider: Collider::cuboid(10., 10.),
         rigid_body: RigidBody::KinematicPositionBased,
         rotation_constraints,
         ..Default::default()

@@ -14,7 +14,7 @@ pub mod systems;
 #[derive(Component, Copy, Clone, Eq, PartialEq, Debug, Default)]
 pub struct Player;
 
-pub const PLAYER_SPEED: f32 = 300.0;
+pub const PLAYER_SPEED: f32 = 100.0;
 
 #[derive(Default, Bundle, LdtkEntity)]
 pub struct PlayerBundle {
@@ -29,9 +29,9 @@ pub struct PlayerBundle {
   #[bundle]
   pub input: PlayerInput,
 
-  #[sprite_bundle("player.png")]
+  #[sprite_sheet_bundle]
   #[bundle]
-  sprite_bundle: SpriteBundle,
+  sprite_bundle: SpriteSheetBundle,
 
   #[worldly]
   pub worldly: Worldly,

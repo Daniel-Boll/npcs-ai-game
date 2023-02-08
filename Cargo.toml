@@ -17,6 +17,7 @@ bevy_asset_loader = { version = "0.14.1", features = [
     "progress_tracking_stageless",
 ] }
 bevy_rapier2d = "0.20.0"
+bevy-inspector-egui = "0.17.0"
 
 # Input and assets releated
 iyes_loopless ="0.9.1"
