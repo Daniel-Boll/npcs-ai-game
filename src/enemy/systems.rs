@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_ecs_ldtk::prelude::*;
+use bevy_ecs_ldtk::{ldtk::TileInstance, prelude::*};
 use bevy_rapier2d::prelude::*;
 use seldom_state::prelude::*;
 
@@ -120,6 +120,11 @@ fn follow(
       continue;
     }
 
+    let mut walls: Vec<(i32, i32)> = Vec::new();
+    let mut grass: Vec<(i32, i32)> = Vec::new();
+    let mut player_grid_position: Option<(i32, i32)> = None;
+    let mut enemy_grid_position: Option<(i32, i32)> = None;
+
     for layer_instance in level
       .layer_instances
       .as_ref()
@@ -128,18 +133,55 @@ fn follow(
     {
       let LayerInstance {
         identifier,
-        grid_tiles,
+        auto_layer_tiles,
+        entity_instances,
         ..
       } = layer_instance;
 
-      // dbg!(identifier);
+      if identifier == "Entities" {
+        for entity_instance in entity_instances {
+          let EntityInstance {
+            grid, identifier, ..
+          } = entity_instance;
 
-      match identifier.as_ref() {
-        "Entities" => {}
-        "Tiles" => {}
-        "Collision" => {}
-        _ => {}
+          let (x, y) = (grid[0], grid[1]);
+
+          match identifier.as_ref() {
+            "Player" => {
+              player_grid_position = Some((x, y));
+            }
+            "Enemy" => {
+              enemy_grid_position = Some((x, y));
+            }
+            _ => {}
+          }
+        }
+      }
+
+      for grid_tile in auto_layer_tiles {
+        let (x, y) = (grid_tile.px[0] / 16, grid_tile.px[1] / 16);
+
+        match identifier.as_ref() {
+          "Grass" => {
+            grass.push((x, y));
+          }
+          "Walls" => {
+            walls.push((x, y));
+          }
+          _ => {}
+        }
       }
     }
+
+    // Every grass coordinate that there's no wall
+    let walkable_tiles: Vec<(i32, i32)> = grass
+      .into_iter()
+      .filter(|&tile| !walls.contains(&tile))
+      .collect();
+
+    // dbg!(&walls);
+    // dbg!(&player_grid_position);
+    // dbg!(&enemy_grid_position);
+    // panic!();
   }
 }
