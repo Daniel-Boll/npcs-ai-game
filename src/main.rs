@@ -38,7 +38,7 @@ fn main() {
     .add_plugin(StateMachinePlugin)
     .add_plugin(TriggerPlugin::<Near>::default())
     .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
-    // .add_plugin(RapierDebugRenderPlugin::default())
+    .add_plugin(RapierDebugRenderPlugin::default())
     .add_plugin(InputManagerPlugin::<TopDownAction>::default())
     // Resources
     .insert_resource(LdtkSettings {

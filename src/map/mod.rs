@@ -23,14 +23,12 @@ pub struct ColliderBundle {
 
 impl From<EntityInstance> for ColliderBundle {
   fn from(entity_instance: EntityInstance) -> ColliderBundle {
-    let rotation_constraints = LockedAxes::ROTATION_LOCKED;
-
     match entity_instance.identifier.as_ref() {
       "Player" | "Enemy" => ColliderBundle {
-        // Rectangle collider 24x24
-        collider: Collider::cuboid(10., 10.),
+        // Create a custom shape 24x24
+        collider: Collider::cuboid(8., 1.),
         rigid_body: RigidBody::KinematicPositionBased,
-        rotation_constraints,
+        rotation_constraints: LockedAxes::ROTATION_LOCKED,
         ..Default::default()
       },
       _ => ColliderBundle::default(),

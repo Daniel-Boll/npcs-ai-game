@@ -1,9 +1,10 @@
 use bevy::prelude::*;
-use bevy_ecs_ldtk::{ldtk::TileInstance, prelude::*};
+use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 use seldom_state::prelude::*;
 
-use crate::player::Player;
+use crate::{player::Player, utils::position::Pos};
+use pathfinding::prelude::idastar;
 
 use super::{
   state_machine::{Follow, Idle, Near},
@@ -99,10 +100,9 @@ pub fn spawn(
 /// When the enemy has a follow component, this system will move the enemy towards the target using
 /// A* pathfinding. This function runs every tick.
 fn follow(
-  entities_with_transform: Query<&Transform>,
-  mut entities_with_kinematic_controller: Query<
+  mut enemy_entity_controller: Query<
     (&mut KinematicCharacterController, &Transform),
-    With<Velocity>,
+    (With<Velocity>, With<Enemy>),
   >,
   follows: Query<(Entity, &Follow), With<Enemy>>,
   time: Res<Time>,
@@ -120,10 +120,9 @@ fn follow(
       continue;
     }
 
-    let mut walls: Vec<(i32, i32)> = Vec::new();
-    let mut grass: Vec<(i32, i32)> = Vec::new();
-    let mut player_grid_position: Option<(i32, i32)> = None;
-    let mut enemy_grid_position: Option<(i32, i32)> = None;
+    let mut walls: Vec<Pos> = Vec::new();
+    let mut player_grid_position: Option<Pos> = None;
+    let mut enemy_grid_position: Option<Pos> = None;
 
     for layer_instance in level
       .layer_instances
@@ -144,44 +143,68 @@ fn follow(
             grid, identifier, ..
           } = entity_instance;
 
-          let (x, y) = (grid[0], grid[1]);
+          let pos = Pos(grid[0], grid[1]);
 
           match identifier.as_ref() {
             "Player" => {
-              player_grid_position = Some((x, y));
+              player_grid_position = Some(pos);
             }
             "Enemy" => {
-              enemy_grid_position = Some((x, y));
+              enemy_grid_position = Some(pos);
             }
             _ => {}
           }
         }
       }
 
-      for grid_tile in auto_layer_tiles {
-        let (x, y) = (grid_tile.px[0] / 16, grid_tile.px[1] / 16);
-
-        match identifier.as_ref() {
-          "Grass" => {
-            grass.push((x, y));
-          }
-          "Walls" => {
-            walls.push((x, y));
-          }
-          _ => {}
-        }
+      walls = if identifier == "Walls" {
+        auto_layer_tiles
+          .iter()
+          .map(|grid_tile| Pos(grid_tile.px[0] / 16, grid_tile.px[1] / 16))
+          .collect()
+      } else {
+        walls
       }
     }
 
-    // Every grass coordinate that there's no wall
-    let walkable_tiles: Vec<(i32, i32)> = grass
-      .into_iter()
-      .filter(|&tile| !walls.contains(&tile))
-      .collect();
+    let player_grid_position = player_grid_position.expect("Player not found");
 
-    // dbg!(&walls);
-    // dbg!(&player_grid_position);
-    // dbg!(&enemy_grid_position);
-    // panic!();
+    let path = idastar(
+      &enemy_grid_position.expect("Enemy not found"),
+      |p| p.successors(&walls),
+      |p| p.manhattan_distance(&player_grid_position),
+      |p| *p == player_grid_position,
+    );
+
+    // Steer the enemy towards the target
+    if let Some(path) = path {
+      let (
+        mut enemy_controller,
+        Transform {
+          translation: enemy_position,
+          ..
+        },
+      ) = enemy_entity_controller.single_mut();
+
+      // TODO: Check if the enemy grid position is indeed updating when the enemy moves
+      // if 👆 so then I will need to compare the path with the current enemy grid position
+      // and get the next one
+      let target_position = Vec3::new(
+        path.0[0].0 as f32 * 8.,
+        path.0[0].1 as f32 * 8.,
+        enemy_position.z,
+      );
+
+      let desired_translation = (target_position - *enemy_position)
+        .normalize_or_zero()
+        .truncate()
+        * time.delta_seconds()
+        * 100.;
+
+      enemy_controller.translation = match enemy_controller.translation {
+        Some(translation) => Some(translation + desired_translation),
+        None => Some(desired_translation),
+      };
+    }
   }
 }

@@ -28,6 +28,9 @@ leafwing-input-manager = "0.8.0"
 seldom_state = "0.3.0"
 statig = "0.2.0"
 
+# Path finding
+pathfinding = "4.2.1"
+
 # Enable a small amount of optimization in debug mode
 [profile.dev]
 opt-level = 1
