@@ -25,10 +25,13 @@ pub struct EnemyBundle {
   #[worldly]
   pub worldly: Worldly,
 
-  #[sprite_bundle("enemy.png")]
+  #[sprite_sheet_bundle]
   #[bundle]
-  sprite_bundle: SpriteBundle,
+  sprite_bundle: SpriteSheetBundle,
 
   #[from_entity_instance]
   entity_instance: EntityInstance,
+
+  #[grid_coords]
+  grid_coords: GridCoords,
 }

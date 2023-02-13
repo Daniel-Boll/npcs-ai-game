@@ -38,4 +38,7 @@ pub struct PlayerBundle {
 
   #[from_entity_instance]
   entity_instance: EntityInstance,
+
+  #[grid_coords]
+  grid_coords: GridCoords,
 }

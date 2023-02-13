@@ -1,14 +1,14 @@
 use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
-use seldom_state::prelude::*;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use leafwing_input_manager::prelude::InputManagerPlugin;
+use seldom_state::prelude::*;
 
 use iyes_progress::{ProgressCounter, ProgressPlugin};
-use npcs::{
+use npcs_ai_game::{
   enemy::{self, state_machine::Near},
   map,
   player::{self, state_machine::TopDownAction},
@@ -33,18 +33,15 @@ fn main() {
   app
     .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
     .add_plugin(ProgressPlugin::new(GameState::AssetLoading))
-    .add_plugin(WorldInspectorPlugin)
     .add_plugin(LdtkPlugin)
     .add_plugin(StateMachinePlugin)
     .add_plugin(TriggerPlugin::<Near>::default())
     .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
-    .add_plugin(RapierDebugRenderPlugin::default())
+    // .add_plugin(RapierDebugRenderPlugin::default())
     .add_plugin(InputManagerPlugin::<TopDownAction>::default())
     // Resources
     .insert_resource(LdtkSettings {
-      level_spawn_behavior: LevelSpawnBehavior::UseWorldTranslation {
-        load_level_neighbors: true,
-      },
+      level_spawn_behavior: LevelSpawnBehavior::UseZeroTranslation,
       set_clear_color: SetClearColor::FromLevelBackground,
       ..Default::default()
     })

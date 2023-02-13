@@ -1,10 +1,13 @@
+use astar_pathfinding::astar;
 use bevy::prelude::*;
-use bevy_ecs_ldtk::prelude::*;
+use bevy_ecs_ldtk::{
+  prelude::*,
+  utils::{grid_coords_to_translation, translation_to_grid_coords},
+};
 use bevy_rapier2d::prelude::*;
 use seldom_state::prelude::*;
 
 use crate::{player::Player, utils::position::Pos};
-use pathfinding::prelude::idastar;
 
 use super::{
   state_machine::{Follow, Idle, Near},
@@ -21,6 +24,16 @@ pub fn add_systems() -> SystemSet {
         .after("player-spawn"),
     )
     .with_system(follow.label("enemy-follow").after("enemy-spawn"))
+    .with_system(
+      update_grid_coords_from_enemy
+        .label("enemy-grid-coords")
+        .after("enemy-spawn"),
+    )
+  // .with_system(
+  //   debug_enemy_grid_coordinates
+  //     .label("enemy-debug-grid-coords")
+  //     .after("enemy-spawn"),
+  // )
 }
 
 type PlayerGet<'a> = Entity;
@@ -39,7 +52,7 @@ pub fn spawn(
   for player_entity in players.iter() {
     for enemy_entity in enemies.iter() {
       let follow_speed = 100.;
-      let follow_distance = 100.;
+      let follow_distance = 300.;
 
       let near_player = Near::new(player_entity, follow_distance);
 
@@ -100,16 +113,20 @@ pub fn spawn(
 /// When the enemy has a follow component, this system will move the enemy towards the target using
 /// A* pathfinding. This function runs every tick.
 fn follow(
-  mut enemy_entity_controller: Query<
-    (&mut KinematicCharacterController, &Transform),
-    (With<Velocity>, With<Enemy>),
-  >,
   follows: Query<(Entity, &Follow), With<Enemy>>,
-  time: Res<Time>,
+  mut movable_entities: Query<
+    (&mut KinematicCharacterController, &GridCoords, &Transform),
+    With<Velocity>,
+  >,
   level_query: Query<&Handle<LdtkLevel>>,
   ldtk_levels: Res<Assets<LdtkLevel>>,
   level_selection: Res<LevelSelection>,
+  time: Res<Time>,
 ) {
+  if follows.iter().count() == 0 {
+    return;
+  }
+
   for level_handle in level_query.iter() {
     let level = &ldtk_levels
       .get(level_handle)
@@ -121,8 +138,6 @@ fn follow(
     }
 
     let mut walls: Vec<Pos> = Vec::new();
-    let mut player_grid_position: Option<Pos> = None;
-    let mut enemy_grid_position: Option<Pos> = None;
 
     for layer_instance in level
       .layer_instances
@@ -133,29 +148,8 @@ fn follow(
       let LayerInstance {
         identifier,
         auto_layer_tiles,
-        entity_instances,
         ..
       } = layer_instance;
-
-      if identifier == "Entities" {
-        for entity_instance in entity_instances {
-          let EntityInstance {
-            grid, identifier, ..
-          } = entity_instance;
-
-          let pos = Pos(grid[0], grid[1]);
-
-          match identifier.as_ref() {
-            "Player" => {
-              player_grid_position = Some(pos);
-            }
-            "Enemy" => {
-              enemy_grid_position = Some(pos);
-            }
-            _ => {}
-          }
-        }
-      }
 
       walls = if identifier == "Walls" {
         auto_layer_tiles
@@ -167,44 +161,90 @@ fn follow(
       }
     }
 
-    let player_grid_position = player_grid_position.expect("Player not found");
+    let (
+      enemy_entity,
+      &Follow {
+        target: player_entity,
+        ..
+      },
+    ) = follows.single();
 
-    let path = idastar(
-      &enemy_grid_position.expect("Enemy not found"),
+    let [
+      (
+        mut enemy_controller,
+        enemy_grid_position,
+        &Transform {
+          translation: enemy_position,
+          ..
+        },
+      ),
+      (_, player_grid_position, _),
+    ] = movable_entities
+      .get_many_mut([enemy_entity, player_entity])
+      .unwrap();
+
+    let enemy_grid_position = Pos(enemy_grid_position.x, enemy_grid_position.y);
+    let player_grid_position = Pos(player_grid_position.x, player_grid_position.y);
+
+    let path = astar(
+      &enemy_grid_position,
       |p| p.successors(&walls),
       |p| p.manhattan_distance(&player_grid_position),
       |p| *p == player_grid_position,
     );
 
-    // Steer the enemy towards the target
-    if let Some(path) = path {
-      let (
-        mut enemy_controller,
-        Transform {
-          translation: enemy_position,
-          ..
-        },
-      ) = enemy_entity_controller.single_mut();
-
-      // TODO: Check if the enemy grid position is indeed updating when the enemy moves
-      // if 👆 so then I will need to compare the path with the current enemy grid position
-      // and get the next one
-      let target_position = Vec3::new(
-        path.0[0].0 as f32 * 8.,
-        path.0[0].1 as f32 * 8.,
-        enemy_position.z,
-      );
-
-      let desired_translation = (target_position - *enemy_position)
-        .normalize_or_zero()
-        .truncate()
-        * time.delta_seconds()
-        * 100.;
-
-      enemy_controller.translation = match enemy_controller.translation {
-        Some(translation) => Some(translation + desired_translation),
-        None => Some(desired_translation),
-      };
+    if path.is_none() {
+      return;
     }
+
+    let path = path
+      .unwrap()
+      .0
+      .iter()
+      .map(|p| Pos(p.0, p.1))
+      .collect::<Vec<Pos>>();
+
+    // Find the next position. Find the index of the enemy current position and get the next one,
+    // if the enemy is not in the path, get the first position.
+    let next_tile_index = path
+      .iter()
+      .position(|p| *p == enemy_grid_position)
+      .unwrap_or(0)
+      + 1;
+    let path = path.split_at(next_tile_index).1;
+
+    let next_tile = GridCoords {
+      x: path[0].0,
+      y: 16 - path[0].1 - 1,
+    };
+
+    // Steer the enemy towards the target
+    let target_position = grid_coords_to_translation(next_tile, (16, 16).into());
+
+    let desired_translation = (target_position - enemy_position.truncate()).normalize_or_zero()
+      * time.delta_seconds()
+      * 30.;
+
+    enemy_controller.translation = match enemy_controller.translation {
+      Some(translation) => Some(translation + desired_translation),
+      None => Some(desired_translation),
+    };
+  }
+}
+
+fn update_grid_coords_from_enemy(
+  mut player: Query<(&Transform, &mut GridCoords), (With<Enemy>, Without<Player>)>,
+) {
+  for (transform, mut grid_coords) in player.iter_mut() {
+    let grid = translation_to_grid_coords(transform.translation.truncate(), (16, 16).into());
+
+    grid_coords.x = grid.x;
+    grid_coords.y = 16 - grid.y - 1;
+  }
+}
+
+fn debug_enemy_grid_coordinates(mut player: Query<&GridCoords, With<Enemy>>) {
+  for grid_coords in player.iter_mut() {
+    println!("Enemy grid coordinates: {grid_coords:?}");
   }
 }

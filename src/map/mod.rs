@@ -24,9 +24,14 @@ pub struct ColliderBundle {
 impl From<EntityInstance> for ColliderBundle {
   fn from(entity_instance: EntityInstance) -> ColliderBundle {
     match entity_instance.identifier.as_ref() {
-      "Player" | "Enemy" => ColliderBundle {
-        // Create a custom shape 24x24
-        collider: Collider::cuboid(8., 1.),
+      "Player" => ColliderBundle {
+        collider: Collider::cuboid(8., 8.),
+        rigid_body: RigidBody::KinematicPositionBased,
+        rotation_constraints: LockedAxes::ROTATION_LOCKED,
+        ..Default::default()
+      },
+      "Enemy" => ColliderBundle {
+        collider: Collider::cuboid(2., 2.),
         rigid_body: RigidBody::KinematicPositionBased,
         rotation_constraints: LockedAxes::ROTATION_LOCKED,
         ..Default::default()
