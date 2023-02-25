@@ -27,6 +27,23 @@ impl Trigger for Near {
   }
 }
 
+// Entities is the `BackToInitial` state should move towards the initial position at the given speed
+#[derive(Clone, Component, Reflect, Debug)]
+#[component(storage = "SparseSet")]
+pub struct BackToInitial {
+  pub target: Entity,
+  pub initial_position: Vec2,
+}
+
+impl BackToInitial {
+  pub fn new(target: Entity, initial_position: Vec2) -> Self {
+    Self {
+      target,
+      initial_position,
+    }
+  }
+}
+
 // Entities in the `Idle` state should do nothing
 #[derive(Clone, Component, Reflect)]
 #[component(storage = "SparseSet")]

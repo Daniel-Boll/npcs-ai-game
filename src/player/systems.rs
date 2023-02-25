@@ -21,11 +21,11 @@ pub fn add_systems() -> SystemSet {
         .run_in_state(GameState::Playing)
         .label("player-grid-coords"), // .after("player-spawn"),
     )
-    // .with_system(
-    //   debug_user_grid_coordinates
-    //     .run_in_state(GameState::Playing)
-    //     .label("player-debug-grid-coords"), // .after("player-spawn"),
-    // )
+  // .with_system(
+  //   debug_user_grid_coordinates
+  //     .run_in_state(GameState::Playing)
+  //     .label("player-debug-grid-coords"), // .after("player-spawn"),
+  // )
 }
 
 pub fn movement(
@@ -62,8 +62,8 @@ fn update_grid_coords_from_player(mut player: Query<(&Transform, &mut GridCoords
   }
 }
 
-fn debug_user_grid_coordinates(mut player: Query<&GridCoords, With<Player>>) {
-  for grid_coords in player.iter_mut() {
-    println!("Player grid coordinates: {grid_coords:?}");
-  }
-}
+// fn debug_user_grid_coordinates(mut player: Query<&GridCoords, With<Player>>) {
+//   for grid_coords in player.iter_mut() {
+//     println!("Player grid coordinates: {grid_coords:?}");
+//   }
+// }
